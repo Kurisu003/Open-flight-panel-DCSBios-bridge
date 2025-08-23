@@ -1,0 +1,17 @@
+[package]
+name = "pfp_writer"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.clippy]
+warn = []
+allow = ["unnecessary_parentheses"]
+
+[dependencies]
+hidapi = "2"
+regex = "1"
+anyhow = "1"
+maplit = "1.0"
+once_cell = "1"
+hex = "0.4"
+phf = { version = "0.12", features = ["macros"] }

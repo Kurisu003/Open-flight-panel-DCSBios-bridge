@@ -3,6 +3,10 @@
 ### Button inputs automatically made through DCS Bios
 ### Automatically detects aircraft (AV8B, A10C2 and Apache for now)
 
+## Notes
+Currently using custom font (initialized through output4.txt) to handle special symbols as lower case letters. Therefor everything else is uppercase.
+If you have any questions, difficulties or requests, don't hesitate to message me on discord, my username is kurisu003
+
 ## Search mode
 Upon pressing the "MENU" key, you can switch into search mode where you can search RWR Codes to get information about whats tracking you
 

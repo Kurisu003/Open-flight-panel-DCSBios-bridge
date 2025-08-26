@@ -67,26 +67,70 @@ pub fn get_AV8B_text(values: &HashMap<u16, [u8; 2]>) -> Vec<TextBlock>{
 
     let rpm_addrs = vec![0x7890, 0x7892, 0x7894, 0x7896];
     let mut rpm_text = "RPM: ".to_string();
-    rpm_text += &addrs_to_65k_num_as_string(values, rpm_addrs);
+    rpm_text += &addrs_to_65k_num_as_string(values, rpm_addrs)[0..=3];
 
     let fuel_addrs = vec![0x78b2, 0x78b4, 0x78b6, 0x78b8, 0x78ba];
-    let mut fuel_text = "Fuel: ".to_string();
+    let mut fuel_text = "FUEL: ".to_string();
     fuel_text += &addrs_to_65k_num_as_string(values, fuel_addrs);
 
     let nozzle_addrs = vec![0x78ae];
-    let mut nozzle_text = "Noz: ".to_string();
+    let mut nozzle_text = "NOZ: ".to_string();
     nozzle_text += &format!("{}", (addrs_to_65k_num_as_string(values, nozzle_addrs).parse::<f32>().unwrap_or(0.0) * 12.5) as i32);
 
+    // The space after TO is important
+    let h2o_switch_lookup = ["LDG","OFF","TO "];
+    let h2o_switch_pos_LE = get_value_by_address(values, 0x783c);
+    let mut h2o_switch_pos_BE = u16::from_le_bytes(h2o_switch_pos_LE);
+    h2o_switch_pos_BE = (h2o_switch_pos_BE & 0x000c)>>2;
+    let h2o_switch_text =
+        if (h2o_switch_pos_BE < 3)
+            {"H2O POS: ".to_string() +
+            h2o_switch_lookup[h2o_switch_pos_BE as usize]}
+        else {"".to_string()};
 
-    let combined_string = h2O_text + &" ".repeat(6) + &rpm_text + &fuel_text + &" ".repeat(4) + &nozzle_text;
-    let combined_len = combined_string.len();
+    let flaps_switch_lookup = ["STOL","AUTO","CRSE"];
+    let flaps_switch_pos_LE = get_value_by_address(values, 0x783a);
+    let mut flaps_switch_pos_BE = u16::from_le_bytes(flaps_switch_pos_LE);
+    flaps_switch_pos_BE = (flaps_switch_pos_BE & 0x0180)>>7;
+    let flaps_switch_text =
+        if (flaps_switch_pos_BE < 3)
+            {"FLAPS POS: ".to_string() +
+            flaps_switch_lookup[flaps_switch_pos_BE as usize]}
+        else {"".to_string()};
+
+    let combined_string = h2O_text + &" ".repeat(6) + &rpm_text + &fuel_text + &" ".repeat(4) + &nozzle_text + &" ".repeat(9-nozzle_text.len());
+    // let combined_len = combined_string.len();
+
+
+    // Master arm
+    let master_arm = (u16::from_le_bytes(get_value_by_address(values, 0x7836))&0x4000)>>14;
+    let master_arm_text = "MASTER ARM: ".to_string() + &{if(master_arm == 1) {"ON "} else {"OFF"}};
+
+    // Landing gear
+    let ldg_gear = (u16::from_le_bytes(get_value_by_address(values, 0x783a))&0x8000)>>15;
+    let ldg_gear_text = "GEAR: ".to_string() + &{if(ldg_gear == 1) {"UP"} else {"DN"}};
+
+    // Air brake
+    let air_brk = (((u16::from_le_bytes(get_value_by_address(values, 0x794e)) as f32)/655.35).round() as u8).to_string();
+    let air_brk_text = "AIR BRK: ".to_string() + &air_brk;
+
+
+    let switch_text = h2o_switch_text + &" ".repeat(12) + &flaps_switch_text + &" ".repeat(9) + &master_arm_text + &" " + &ldg_gear_text + &air_brk_text;
 
     testVec.push(
         TextBlock {
-            text: combined_string +
-                &" ".repeat(136-combined_len),
+            text: combined_string,
+            // +&" ".repeat(136-combined_len),
             bg: (String::from("black")),
             fg: (String::from("green"))
+        }
+    );
+    testVec.push(
+        TextBlock {
+            text: switch_text,
+            // +&" ".repeat(136-combined_len),
+            bg: (String::from("black")),
+            fg: (String::from("red"))
         }
     );
 

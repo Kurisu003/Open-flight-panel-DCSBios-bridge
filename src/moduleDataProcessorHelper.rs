@@ -114,8 +114,23 @@ pub fn get_AV8B_text(values: &HashMap<u16, [u8; 2]>) -> Vec<TextBlock>{
     let air_brk = (((u16::from_le_bytes(get_value_by_address(values, 0x794e)) as f32)/655.35).round() as u8).to_string();
     let air_brk_text = "AIR BRK: ".to_string() + &air_brk;
 
+    let ldg_gear_text = "GEAR: ".to_string() + &{if(ldg_gear == 1) {"UP"} else {"DN"}};
 
-    let switch_text = h2o_switch_text + &" ".repeat(12) + &flaps_switch_text + &" ".repeat(9) + &master_arm_text + &" " + &ldg_gear_text + &air_brk_text;
+
+    // A/G Master mode
+    let ag_mms = (u16::from_le_bytes(get_value_by_address(values, 0x7880))&0x0800)>>11;
+    let nav_mms = (u16::from_le_bytes(get_value_by_address(values, 0x7880))&0x0200)>>9;
+    let vstol_mms = (u16::from_le_bytes(get_value_by_address(values, 0x7880))&0x0400)>>10;
+
+    // The spaces here are important
+    let master_mode_text = {
+        if (ag_mms == 1) {"A/G "}
+        else if (nav_mms   ==1) {"NAV "}
+        else if (vstol_mms ==1) {"VTOL"}
+        else {"    "}
+    };
+
+    let switch_text = h2o_switch_text + &" ".repeat(12) + &flaps_switch_text + &" ".repeat(9) + &master_arm_text + &" " + &ldg_gear_text + &air_brk_text + &" ".repeat(24-air_brk_text.len()) + &master_mode_text;
 
     testVec.push(
         TextBlock {

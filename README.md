@@ -17,6 +17,6 @@ Shows MCDU
 Shows some warnings, cautions and advisories, as well as your own keypad lines and the other pilots keypad lines (in white)
 
 ## AV8B
-Not fully implemented yet
+Shows basic aircraft info such as fuel remaining, H2O remaining, nozzle direction, etc
 
 Happy Flying!

@@ -4,7 +4,10 @@
 ### Automatically detects aircraft (AV8B, A10C2 and Apache for now)
 
 ## Notes
-Currently using custom font (initialized through output4.txt) to handle special symbols as lower case letters. Therefor everything else is uppercase.
+Currently using custom font (initialized through output4.txt) to handle special symbols as lower case letters. Therefor everything else is uppercase. </br>
+`output4.txt` needs to be in the same folder and named exactly `output4.txt` </br>
+Manual button mappings is for if you want to map buttons in DCS (Search mode wont work here for obvious reasons)  </br>
+Auto button mappings handles button mapping through DCS BIOS and search mode works here </br>
 If you have any questions, difficulties or requests, don't hesitate to message me on discord, my username is kurisu003
 
 ## Search mode

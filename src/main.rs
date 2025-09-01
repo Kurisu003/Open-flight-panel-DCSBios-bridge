@@ -23,9 +23,11 @@ use std::time::{Duration, Instant};
 
 
 const VID: u16 = 0x4098;
-const PID: u16 = 0xbb35; // from your enumeration
+const PID: u16 = 0xbb35; // PFP 3N
+// const PID: u16 = 0xbb37; // PFP 7
 const WRITE_DELAY_S: f32 = 0.005;
 const INIT_PATH: &str = "output4.txt";
+const MANUAL_BUTTON_MAPPING: bool = false;
 
 pub fn find_device() -> Result<HidDevice> {
     let hid_api = HidApi::new().context("Failed to initialize HID API")?;
@@ -92,7 +94,7 @@ fn main() -> Result<()> {
                 last_toggle = Instant::now();
         }
 
-        if(search_mode){
+        if(search_mode && !MANUAL_BUTTON_MAPPING){
             let mut res: Vec<TextBlock> = Vec::new();
             res.push(
                 TextBlock {
@@ -125,14 +127,18 @@ fn main() -> Result<()> {
             let mut res: Vec<TextBlock> = Vec::new();
             if module_name.starts_with("A-10C_2"){
                 res = get_A10C2_text(&snapshot);
-                handle_A10C2_input();
+                if (!MANUAL_BUTTON_MAPPING){
+                    handle_A10C2_input()
+                };
             }
             else if(module_name.starts_with("AV8B")){
                 res = get_AV8B_text(&snapshot);
             }
             else if(module_name.starts_with("AH-64D_BLK_II")){
                 res = get_AH64D_text(&snapshot);
-                handle_AH64D_input(&snapshot);
+                if (!MANUAL_BUTTON_MAPPING){
+                    handle_AH64D_input(&snapshot)
+                };
             }
 
             // send_text_to_disp(&write_device, 0.01, &res);

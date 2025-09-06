@@ -11,7 +11,7 @@ pub(crate) mod types;
 use crate::types::{TextBlock};
 use crate::writeHelper::{send_init_from_file, send_text_to_disp};
 use crate::dcsBiosHelper::{read_stream, get_map};
-use crate::moduleDataProcessorHelper::{get_A10C2_text, get_AH64D_text, get_AV8B_text, get_module_name, handle_A10C2_input, handle_AH64D_input};
+use crate::moduleDataProcessorHelper::{get_A10C2_text, get_AH64D_text, get_AV8B_text, get_CH47F_text, get_module_name, handle_A10C2_input, handle_AH64D_input};
 use crate::inputHelper::{is_button_pressed, poll_nonblocking};
 use crate::searchModeHelper::{get_search_mode_disp};
 
@@ -25,7 +25,10 @@ use std::time::{Duration, Instant};
 const VID: u16 = 0x4098;
 const PID: u16 = 0xbb35; // PFP 3N
 // const PID: u16 = 0xbb37; // PFP 7
-const WRITE_DELAY_S: f32 = 0.005;
+const WRITE_DELAY_SHORT: f32 = 0.005;
+const WRITE_DELAY_LONG: f32 = 0.01;
+const TOGGLE_DELAY: u64 = 100;
+const THREAD_SLEEP: u64 = 10;
 const INIT_PATH: &str = "output4.txt";
 const MANUAL_BUTTON_MAPPING: bool = false;
 
@@ -45,13 +48,13 @@ pub fn find_device() -> Result<HidDevice> {
                 .device_list()
                 .find(|d| d.vendor_id() == VID && d.product_id() == PID)
         })
-        .ok_or_else(|| anyhow!("No HID interfaces with VID={:04X} PID={:04X} found by hidapi", VID, PID))?;
+        .ok_or_else(|| anyhow!("PFP_WRITER: No HID interfaces with VID={:04X} PID={:04X} found by hidapi", VID, PID))?;
 
     let path = dev_info.path();
 
     let device = hid_api
         .open_path(path)
-        .with_context(|| format!("Failed to open HID path {}", path.to_string_lossy()))?;
+        .with_context(|| format!("PFP_WRITER: Failed to open HID path {}", path.to_string_lossy()))?;
 
     Ok(device)
 }
@@ -62,8 +65,8 @@ fn main() -> Result<()> {
     let read_device = find_device()?;
 
     // Sends init package from file
-    send_init_from_file(&write_device, INIT_PATH, WRITE_DELAY_S);
-    println!("Sent init packets to {:04X}:{:04X} from {}", VID, PID, INIT_PATH);
+    send_init_from_file(&write_device, INIT_PATH, WRITE_DELAY_SHORT);
+    println!("PFP_WRITER: Sent init packets to {:04X}:{:04X} from {}", VID, PID, INIT_PATH);
 
     // let test = vec![TextBlock{ text: "Auvwxyz".to_string(), bg: "black".to_string(), fg: "white".to_string() }];
     // send_text_to_disp(&write_device, WRITE_DELAY_S,&test);
@@ -78,18 +81,18 @@ fn main() -> Result<()> {
     // Spawn background thread for reading device inputs
     thread::spawn(move || {
         if let Err(e) = poll_nonblocking(&read_device) {
-            eprintln!("HID reader error: {e}");
+            eprintln!("PFP_WRITER: HID reader error: {e}");
         }
     });
 
     // variables required for switching to search mode
     let mut search_mode = false;
-    let mut last_toggle = Instant::now() - Duration::from_millis(100);
+    let mut last_toggle = Instant::now() - Duration::from_millis(TOGGLE_DELAY);
     loop {
         // msb = mode switch button
         let msb_pressed = is_button_pressed("MENU");
         if (msb_pressed
-            && last_toggle.elapsed() >= Duration::from_millis(100)) {
+            && last_toggle.elapsed() >= Duration::from_millis(TOGGLE_DELAY)) {
                 search_mode = !search_mode;
                 last_toggle = Instant::now();
         }
@@ -105,7 +108,7 @@ fn main() -> Result<()> {
             );
 
             let search_mode_disp = get_search_mode_disp();
-            send_text_to_disp(&write_device, 0.01, &search_mode_disp);
+            send_text_to_disp(&write_device, WRITE_DELAY_LONG, &search_mode_disp);
         }
 
 
@@ -123,6 +126,9 @@ fn main() -> Result<()> {
             // yes, I know this gets called every 10ms
             // yes, I know its not performant
             let module_name = get_module_name(&snapshot);
+            // if(!module_name.starts_with("?")){
+            //     println!("Module: {:}", module_name);
+            // }
 
             let mut res: Vec<TextBlock> = Vec::new();
             if module_name.starts_with("A-10C_2"){
@@ -134,6 +140,9 @@ fn main() -> Result<()> {
             else if(module_name.starts_with("AV8B")){
                 res = get_AV8B_text(&snapshot);
             }
+            else if(module_name.starts_with("CH-47F")){
+                res = get_CH47F_text(&snapshot);
+            }
             else if(module_name.starts_with("AH-64D_BLK_II")){
                 res = get_AH64D_text(&snapshot);
                 if (!MANUAL_BUTTON_MAPPING){
@@ -142,10 +151,10 @@ fn main() -> Result<()> {
             }
 
             // send_text_to_disp(&write_device, 0.01, &res);
-            send_text_to_disp(&write_device, 0.01,&res);
+            send_text_to_disp(&write_device, WRITE_DELAY_LONG,&res);
         }
 
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(THREAD_SLEEP));
     }
 
     // Ok(())

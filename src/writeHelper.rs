@@ -1,8 +1,10 @@
 #![allow(non_snake_case)]
 use anyhow::{ Context, Result };
 use hidapi::{ HidDevice };
+use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use std::path::PathBuf;
 use std::thread::{self, sleep};
 use std::time::Duration;
 use maplit::hashmap;
@@ -135,10 +137,13 @@ pub fn send_text_to_disp(device: &HidDevice,write_delay: f32, blocks: &Vec<TextB
 }
 
 pub fn send_init_from_file(device: &HidDevice, init_path: &str, delay_secs: f32) {
-    let file = match File::open(init_path) {
+    let mut current_dir: PathBuf = env::current_dir().unwrap();
+    current_dir.push(init_path);
+
+    let file = match File::open(&current_dir) {
         Ok(f) => f,
         Err(e) => {
-            eprintln!("Failed to open '{}': {}", init_path, e);
+            eprintln!("Failed to open init file: {}",e);
             return;
         }
     };

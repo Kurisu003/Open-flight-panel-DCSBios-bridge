@@ -55,6 +55,32 @@ pub fn get_string_by_addr_and_len(
     out
 }
 
+pub fn get_CH47F_text(values: &HashMap<u16, [u8; 2]>) -> Vec<TextBlock>{
+    let mut cdu_text = String::new();
+    let cplt_cdu_text_addrs: [u16; 14] = [0x9e4e, 0x9e66, 0x9e7e, 0x9e96, 0x9eae, 0x9ec6, 0x9ede, 0x9ef6, 0x9f0e, 0x9f26, 0x9f3e, 0x9f56, 0x9f6e, 0x9f86];
+    let plt_cdu_text_addrs: [u16; 14] = [0x9cdc, 0x9cf4, 0x9d0c, 0x9d24, 0x9d3c, 0x9d54, 0x9d6c, 0x9d84, 0x9d9c, 0x9db4, 0x9dcc, 0x9de4, 0x9dfc, 0x9e14];
+    // let cplt_cdu_text_addrs: [u16; 2] = [0x9e4e, 0x9e66];
+
+    let mut text_raw = "".to_string();
+    for addr in cplt_cdu_text_addrs{
+        text_raw = get_string_by_addr_and_len(values, addr, 24);
+        cdu_text.push_str(&text_raw);
+    }
+    cdu_text.push_str(&" ".repeat(24*14-text_raw.len()));
+
+
+    let mut testVec: Vec<TextBlock> = Vec::new();
+    testVec.push(
+        TextBlock {
+            text: cdu_text,
+            bg: (String::from("black")),
+            fg: (String::from("green"))
+        }
+    );
+    // println!("{:?}", testVec);
+    return testVec;
+}
+
 pub fn get_AV8B_text(values: &HashMap<u16, [u8; 2]>) -> Vec<TextBlock>{
     let mut testVec: Vec<TextBlock> = Vec::new();
 
@@ -339,6 +365,11 @@ pub fn handle_AH64D_input(values: &HashMap<u16, [u8; 2]>){
 }
 
 fn AH64D_isCpg(values:&HashMap<u16, [u8;2]>)->bool{
+    return (u16::from_le_bytes(get_value_by_address(values, 0x8750))&0x0100) == 256;
+}
+
+fn CH47F_isCpg(values:&HashMap<u16, [u8;2]>)->bool{
+    // NOT CORRECT
     return (u16::from_le_bytes(get_value_by_address(values, 0x8750))&0x0100) == 256;
 }
 

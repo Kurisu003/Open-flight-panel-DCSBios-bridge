@@ -14,7 +14,8 @@ use std::thread::sleep;
 
 
 pub type SharedMap = Arc<Mutex<HashMap<u16, [u8; 2]>>>;
-
+const BUTTON_SLEEP_DELAY: u64 = 100;
+const STREAM_TIMEOUT: u64 = 500;
 
 /// Public, static, thread-safe hash map (u8 → u8)
 pub static GLOBAL_MAP: Lazy<SharedMap> = Lazy::new(|| {
@@ -59,9 +60,10 @@ fn update_vals(data: &[u8]) {
 pub fn read_stream() -> io::Result<()> {
     let mut stream = TcpStream::connect("127.0.0.1:7778")?;
     // Block up to 200 ms per read; if no data arrives, return TimedOut.
-    stream.set_read_timeout(Some(Duration::from_millis(500)))?;
+    stream.set_read_timeout(Some(Duration::from_millis(STREAM_TIMEOUT)))?;
 
     let mut buffer = [0u8; 4096];
+    let mut is_first_time = true;
 
     loop {
         match stream.read(&mut buffer) {
@@ -71,6 +73,10 @@ pub fn read_stream() -> io::Result<()> {
             }
             Ok(n) => {
                 // Process the received bytes
+                if (is_first_time){
+                    println!("\nConnection OK");
+                    is_first_time = false;
+                }
                 update_vals(&buffer[..n]);
             }
             Err(e) if e.kind() == ErrorKind::TimedOut => {
@@ -79,6 +85,8 @@ pub fn read_stream() -> io::Result<()> {
                 continue;
             }
             Err(e) => {
+                eprintln!("Connection closed");
+
                 // Propagate unexpected I/O errors to the caller.
                 return Err(e);
             }
@@ -88,13 +96,13 @@ pub fn read_stream() -> io::Result<()> {
 
 pub fn send_button_press(button: &str){
     let _ = send_message_to_dcsbios(&button);
-    sleep(Duration::from_millis(100));
+    sleep(Duration::from_millis(BUTTON_SLEEP_DELAY));
     let _ = send_message_to_dcsbios(&button);
 }
 
 pub fn send_button_state_press(state_1: &str, state_2: &str){
     let _ = send_message_to_dcsbios(&state_1);
-    sleep(Duration::from_millis(100));
+    sleep(Duration::from_millis(BUTTON_SLEEP_DELAY));
     let _ = send_message_to_dcsbios(&state_2);
 }
 
